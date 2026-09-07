@@ -203,16 +203,37 @@ function renderDayBlock(day) {
 }
 
 // ── '전체' 모드: 최신순 무한 스크롤 ─────────────────────────
+let consecutiveFailures = 0;
+const MAX_CONSECUTIVE_FAILURES = 2; // 연속 실패 시 자동 로딩을 멈추고 수동 버튼으로 전환
+
 async function loadNextInAllMode() {
   if (mode !== 'all' || loadedIndex >= manifest.days.length) return;
+  if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) return; // showLoadMoreButton()이 재개를 담당
   const { date } = manifest.days[loadedIndex];
   loadedIndex++;
   try {
     const day = await fetchDay(date);
     renderDayBlock(day);
+    consecutiveFailures = 0;
   } catch (e) {
     console.error('일자 데이터 로드 실패:', date, e);
+    consecutiveFailures++;
+    if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+      showLoadMoreButton(date);
+    }
   }
+}
+
+function showLoadMoreButton(lastFailedDate) {
+  const wrap = document.createElement('div');
+  wrap.className = 'status-msg';
+  wrap.innerHTML = `${dotDate(lastFailedDate)} 이전 날짜부터 데이터 파일이 없습니다 (data/${lastFailedDate}.json 등 누락).<br><span id="load-more-btn" style="cursor:pointer;text-decoration:underline;">다시 시도</span>`;
+  feed.appendChild(wrap);
+  document.getElementById('load-more-btn').onclick = () => {
+    wrap.remove();
+    consecutiveFailures = 0;
+    loadNextInAllMode();
+  };
 }
 
 async function resetAllMode() {
