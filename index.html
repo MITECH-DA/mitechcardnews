@@ -70,6 +70,8 @@
   .cell { position:relative; aspect-ratio:4/5; overflow:hidden; cursor:pointer; background:#161b28; }
   .cell img { width:100%; height:100%; object-fit:cover; transition:transform .2s ease; }
   .cell:hover img { transform:scale(1.04); }
+  .cell.text-fallback { display:flex; align-items:center; justify-content:center; padding:10px; text-align:center; }
+  .cell.text-fallback p { font-size:11px; line-height:1.4; color:#c3c8d6; margin:0; }
   .tag { position:absolute; top:8px; left:8px; font-size:10px; padding:3px 8px; border-radius:999px;
     background:rgba(0,0,0,0.55); color:#fff; font-weight:600; backdrop-filter: blur(2px); }
 
@@ -180,8 +182,18 @@ function renderDayBlock(day) {
   grid.className = 'grid';
   day.items.forEach(it => {
     const cell = document.createElement('div');
-    cell.className = 'cell';
-    cell.innerHTML = `<span class="tag">${it.tag}</span><img src="${it.file}" loading="lazy" alt="${it.title || ''}">`;
+    if (it.file) {
+      cell.className = 'cell';
+      cell.innerHTML = `<span class="tag">${it.tag}</span><img src="${it.file}" loading="lazy" alt="${it.title || ''}">`;
+      const img = cell.querySelector('img');
+      img.onerror = () => {
+        cell.className = 'cell text-fallback';
+        cell.innerHTML = `<span class="tag">${it.tag}</span><p>${it.title || it.source || ''}</p>`;
+      };
+    } else {
+      cell.className = 'cell text-fallback';
+      cell.innerHTML = `<span class="tag">${it.tag}</span><p>${it.title || it.source || ''}</p>`;
+    }
     cell.onclick = () => {
       if (it.url) window.open(it.url, '_blank', 'noopener');
     };
